@@ -14,7 +14,9 @@ export async function sendToWorkflow(url, isVideo = false) {
     // 2. Find Load node
     let graph = app.graph;
     let foundNode = null;
-    const nodeTypes = isVideo ? ["LoadVideo", "Video Input"] : ["LoadImage", "Image Input"];
+    const nodeTypes = isVideo
+      ? ["WettitLoadVideo", "LoadVideo", "Video Input"]
+      : ["WettitLoadImage", "LoadImage", "Image Input"];
     for (let node of graph._nodes || graph.nodes || []) {
       if (nodeTypes.includes(node.type)) {
         foundNode = node;
@@ -26,45 +28,45 @@ export async function sendToWorkflow(url, isVideo = false) {
       return;
     }
     const prop = isVideo ? "video" : "image";
+    // Set property directly
     if (foundNode.setProperty) foundNode.setProperty(prop, filename);
-    else if (foundNode.properties) foundNode.properties[prop] = filename;
+    if (foundNode.properties) foundNode.properties[prop] = filename;
+
+    // Ensure widget reflects the new file and includes it in options
+    const widgets = (foundNode.widgets || []);
+    const w = widgets.find(
+      vw => (vw && (vw.name === prop || vw.label === prop))
+    );
+    if (w) {
+      try {
+        // ensure value exists in options for combo/file widgets
+        if (w.options) {
+          const vals = Array.isArray(w.options.values) ? w.options.values : (Array.isArray(w.options) ? w.options : null);
+          if (vals && !vals.includes(filename)) {
+            vals.push(filename);
+            if (Array.isArray(w.options.values)) w.options.values = vals;
+            else if (Array.isArray(w.options)) w.options = vals;
+          }
+        }
+        w.value = filename;
+        if (foundNode.onWidgetChanged) foundNode.onWidgetChanged(w, filename, null, null, null);
+      } catch (e) {
+        console.warn("Widget update failed, falling back to property change only", e);
+      }
+    }
+
+    // Notify node about property change
     if (foundNode.onPropertyChanged) foundNode.onPropertyChanged(prop, filename);
 
-    // 3. Simulate "R" keypress to force reload
-    document.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "r", code: "KeyR", keyCode: 82, bubbles: true })
-    );
+    // Nudge UI: simulate reload to refresh dropdowns in editor
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "r", code: "KeyR", keyCode: 82, bubbles: true }));
 
-    // 4. Bruteforce select dropdown after reload
-    function trySelectDropdown(node, prop, filename, maxTries = 16) {
-      let tries = 0;
-      function attempt() {
-        const dropdown = document.querySelector(
-          `select[name="${prop}"], select[data-prop="${prop}"]`
-        );
-        if (
-          dropdown &&
-          [...dropdown.options].some(opt => opt.value === filename)
-        ) {
-          dropdown.value = filename;
-          dropdown.dispatchEvent(new Event("change", { bubbles: true }));
-          if (node.setProperty) node.setProperty(prop, filename);
-          if (node.onPropertyChanged) node.onPropertyChanged(prop, filename);
-          showToast(`${isVideo ? "Video" : "Image"} loaded and selected in workflow!`);
-        } else if (++tries < maxTries) {
-          setTimeout(attempt, 140);
-        } else {
-          showToast("File loaded, but could not select drop down automatically", "error");
-        }
-      }
-      attempt();
-    }
-    trySelectDropdown(foundNode, prop, filename);
-
-    // 5. Refresh canvas
+    // Refresh canvas and focus node
     if (graph.setDirtyCanvas) graph.setDirtyCanvas(true, true);
     if (graph.onNodeChanged) graph.onNodeChanged(foundNode);
     if (foundNode.pos && app.canvas) app.canvas.centerOnNode(foundNode);
+
+    showToast(`${isVideo ? "Video" : "Image"} loaded and selected in workflow!`);
 
   } catch (err) {
     showToast("Failed to send to workflow", "error");

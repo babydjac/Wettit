@@ -6,7 +6,7 @@ export const css = {
   // ------------- GLOBAL LAYOUT ------------- //
   container: {
     padding: "clamp(18px, 4vw, 36px)",
-    fontFamily: "'Inter',-apple-system,BlinkMacSystemFont,sans-serif",
+    fontFamily: "var(--font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif)",
     color: "var(--fg, #e9f4fa)",
     background: "linear-gradient(180deg, var(--bg, #16204c) 0%, var(--bg2, #102045) 100%)",
     display: "flex",
@@ -238,17 +238,17 @@ export const css = {
     outline: active ? "2px solid var(--accent, #17e1cf)" : "none"
   }),
 
-  // ------------- POST GRID (Imgur-Style Masonry Columns) ------------- //
+  // ------------- POST GRID (Pinterest-style Masonry) ------------- //
+  // Use CSS multi-columns to achieve masonry flow without gaps.
   postGrid: {
-    columnCount: 4,
-    columnGap: "22px",
+    display: "block",
+    columnCount: 3,
+    columnGap: "8px",
+    WebkitColumnGap: "8px",
     width: "100%",
-    maxWidth: "1600px",
-    margin: "0 auto",
-    padding: "0 10px",
-    // Responsive breakpoints for column count (CSS-in-JS, works with libraries or use CSS for prod)
-    '@media (max-width: 1200px)': { columnCount: 2 },
-    '@media (max-width: 700px)': { columnCount: 1 }
+    maxWidth: "100%",
+    margin: 0,
+    padding: 0
   },
   skeleton: {
     height: "auto",
@@ -260,18 +260,21 @@ export const css = {
 
   // ------------- POST CARD (with Flip/Drag Styles) ------------- //
   postCard: {
-    breakInside: "avoid",
-    background: "var(--card, #203763)",
-    borderRadius: "19px",
-    marginBottom: "24px",
-    boxShadow: "0 6px 24px var(--card-shadow, rgba(23,225,207,0.09))",
+    // For CSS grid we don't need breakInside
+    background: "transparent",
+    borderRadius: "0",
+    marginBottom: "8px",
+    boxShadow: "none",
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
     transition: "transform 0.19s, box-shadow 0.21s",
     outline: "none",
     cursor: "pointer",
-    position: "relative"
+    position: "relative",
+    breakInside: "avoid",
+    pageBreakInside: "avoid",
+    WebkitColumnBreakInside: "avoid"
   },
   postCardHover: {
     transform: "translateY(-8px) scale(1.03)",
@@ -318,8 +321,8 @@ export const css = {
   postImage: {
     width: "100%",
     display: "block",
-    objectFit: "contain",
-    background: "var(--bg2, #16204c)",
+    objectFit: "cover",
+    background: "transparent",
     border: 0,
     outline: "none",
     transition: "transform 0.36s"
@@ -401,6 +404,25 @@ export const css = {
   },
   postCardHoverOverlay: {
     opacity: "1"
+  },
+  cardToolbar: {
+    position: "absolute",
+    top: "10px",
+    left: "10px",
+    display: "flex",
+    gap: "6px",
+    opacity: "0",
+    transition: "opacity 0.18s",
+    zIndex: 12
+  },
+  toolbarBtn: {
+    background: "rgba(0,0,0,0.55)",
+    color: "#fff",
+    border: "none",
+    borderRadius: "6px",
+    padding: "4px 6px",
+    cursor: "pointer",
+    fontSize: "12px"
   },
   loadMore: {
     padding: "18px 38px",
